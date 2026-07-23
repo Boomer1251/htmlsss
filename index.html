@@ -316,6 +316,9 @@
             </div>
             
             <div class="titlebar-actions">
+                <button class="btn-sm" id="btnCopy">
+                    <i class="fa-solid fa-copy"></i> Copy
+                </button>
                 <button class="btn-sm" id="btnSave">
                     <i class="fa-solid fa-floppy-disk"></i> Save Script
                 </button>
@@ -345,7 +348,7 @@
         </div>
     </div>
 
-    <!-- Custom Right-Click Context Menu -->
+    <!-- Custom Right-Click Context Menu for Tabs -->
     <div class="context-menu" id="customContextMenu">
         <div class="context-menu-item" id="ctxRename">
             <i class="fa-solid fa-pen"></i> Rename
@@ -356,6 +359,11 @@
     </div>
 
     <script>
+        // Disable default browser context menu globally
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
         let editor = null;
         let activeTabId = null;
         let contextTargetTabId = null;
@@ -408,7 +416,7 @@ end`;
             renderTabs();
             loadTabContent(activeTabId);
 
-            // SAVE CONTENT PER TAB ON TYPING
+            // Save content per tab on change
             editor.onDidChangeModelContent(() => {
                 if (!activeTabId) return;
                 const currentTabs = getTabsState();
@@ -444,9 +452,10 @@ end`;
                     <i class="fa-solid fa-xmark close-tab"></i>
                 `;
 
-                // Custom Right Click Handler
+                // Custom Right Click Handler for Tabs
                 tabEl.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     contextTargetTabId = tab.id;
                     showContextMenu(e.clientX, e.clientY);
                 });
@@ -538,6 +547,25 @@ end`;
             hideContextMenu();
         });
 
+        // Copy Script Button
+        document.getElementById('btnCopy').addEventListener('click', async () => {
+            if (!editor) return;
+            const code = editor.getValue();
+            if (!code.trim()) return;
+
+            try {
+                await navigator.clipboard.writeText(code);
+                const btn = document.getElementById('btnCopy');
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> Copied!`;
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                }, 1500);
+            } catch (err) {
+                console.error('Failed to copy code:', err);
+            }
+        });
+
         // Clear Current Tab
         document.getElementById('btnClear').addEventListener('click', () => {
             if (editor && activeTabId) {
@@ -579,7 +607,7 @@ end`;
                     <i class="fa-solid fa-xmark delete-btn" data-index="${index}"></i>
                 `;
                 
-                // Clicking a saved script updates the current tab name & code
+                // Clicking a saved script updates current tab
                 item.addEventListener('click', (e) => {
                     if (e.target.classList.contains('delete-btn')) return;
                     
@@ -620,7 +648,6 @@ end`;
                 scripts.push({ name: scriptName, code: code });
                 saveScriptsToStorage(scripts);
 
-                // Update current tab name to match saved file name
                 if (currentTab) {
                     currentTab.name = scriptName;
                     saveTabsState(tabs);
