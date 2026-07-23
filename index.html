@@ -29,7 +29,6 @@
             padding: 0;
             font-family: 'JetBrains Mono', 'Fira Code', 'Inter', -apple-system, sans-serif;
             user-select: none;
-            /* macOS Precision Pointer Cursor */
             cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' stroke='%23000000' stroke-width='1.5' stroke-linejoin='round' d='M3 3l7 18 3-7 7-3L3 3z'/%3E%3C/svg%3E"), auto !important;
         }
 
@@ -44,7 +43,6 @@
             overflow: hidden;
         }
 
-        /* macOS Window Frame */
         .window {
             width: 100%;
             height: 100%;
@@ -60,7 +58,6 @@
             position: relative;
         }
 
-        /* Title Bar */
         .titlebar {
             height: 42px;
             background: #08090d;
@@ -139,7 +136,6 @@
             overflow: hidden;
         }
 
-        /* Sidebar */
         .sidebar {
             width: 240px;
             background: #0a0b0e;
@@ -198,7 +194,6 @@
         .script-item:hover .delete-btn { opacity: 1; }
         .script-item .delete-btn:hover { color: var(--mac-close); }
 
-        /* Editor Area */
         .editor-container {
             flex: 1;
             display: flex;
@@ -262,7 +257,6 @@
             height: 100%;
         }
 
-        /* Custom Context Menu */
         .context-menu {
             position: fixed;
             z-index: 10000;
@@ -348,7 +342,7 @@
         </div>
     </div>
 
-    <!-- Custom Right-Click Context Menu for Tabs -->
+    <!-- Custom Right-Click Context Menu -->
     <div class="context-menu" id="customContextMenu">
         <div class="context-menu-item" id="ctxRename">
             <i class="fa-solid fa-pen"></i> Rename
@@ -359,14 +353,10 @@
     </div>
 
     <script>
-        // Disable default browser context menu globally
+        // Completely disable default browser context menu globally
         document.addEventListener('contextmenu', (e) => {
             e.preventDefault();
         });
-
-        let editor = null;
-        let activeTabId = null;
-        let contextTargetTabId = null;
 
         const defaultCode = `-- Luau Workspace
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -382,17 +372,34 @@ local function upgradeSlot(slotName)
     ReplicatedStorage.Events.UpgradeItemEvent:FireServer(unpack(args))
 end`;
 
-        // Load Tabs State
-        function getTabsState() {
-            const saved = localStorage.getItem('apex_tabs_state');
-            if (saved) return JSON.parse(saved);
-            return [
-                { id: 'tab_1', name: 'Script 1.luau', code: defaultCode }
-            ];
+        let editor = null;
+        let activeTabId = null;
+        let contextTargetTabId = null;
+        let isUpdatingEditor = false; // Prevents race conditions during editor.setValue()
+
+        // --- In-Memory Tab System ---
+        let tabs = [];
+
+        function loadTabsFromStorage() {
+            try {
+                const saved = localStorage.getItem('apex_tabs_state');
+                if (saved) {
+                    tabs = JSON.parse(saved);
+                }
+            } catch (e) {
+                console.error("Failed to load tabs state", e);
+            }
+            if (!tabs || tabs.length === 0) {
+                tabs = [{ id: 'tab_' + Date.now(), name: 'Script 1.luau', code: defaultCode }];
+            }
         }
 
-        function saveTabsState(tabs) {
+        function saveTabsToStorage() {
             localStorage.setItem('apex_tabs_state', JSON.stringify(tabs));
+        }
+
+        function generateUniqueId() {
+            return 'tab_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
         }
 
         // Initialize Monaco Editor
@@ -411,35 +418,32 @@ end`;
                 padding: { top: 12, bottom: 12 }
             });
 
-            const tabs = getTabsState();
+            loadTabsFromStorage();
             activeTabId = tabs[0].id;
             renderTabs();
-            loadTabContent(activeTabId);
+            setEditorContent(tabs[0].code);
 
-            // Save content per tab on change
+            // Track changes cleanly without triggering re-entrant event loops
             editor.onDidChangeModelContent(() => {
-                if (!activeTabId) return;
-                const currentTabs = getTabsState();
-                const tab = currentTabs.find(t => t.id === activeTabId);
-                if (tab) {
-                    tab.code = editor.getValue();
-                    saveTabsState(currentTabs);
+                if (isUpdatingEditor || !activeTabId) return;
+                const activeTab = tabs.find(t => t.id === activeTabId);
+                if (activeTab) {
+                    activeTab.code = editor.getValue();
+                    saveTabsToStorage();
                 }
             });
         });
 
-        function loadTabContent(tabId) {
-            const tabs = getTabsState();
-            const tab = tabs.find(t => t.id === tabId);
-            if (tab && editor) {
-                editor.setValue(tab.code || '');
-            }
+        function setEditorContent(code) {
+            if (!editor) return;
+            isUpdatingEditor = true;
+            editor.setValue(code || '');
+            isUpdatingEditor = false;
         }
 
         function renderTabs() {
             const tabsBar = document.getElementById('tabsBar');
             const addBtn = document.getElementById('addTabBtn');
-            const tabs = getTabsState();
 
             document.querySelectorAll('.tab').forEach(t => t.remove());
 
@@ -452,7 +456,7 @@ end`;
                     <i class="fa-solid fa-xmark close-tab"></i>
                 `;
 
-                // Custom Right Click Handler for Tabs
+                // Custom Context Menu on Right Click
                 tabEl.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -465,23 +469,38 @@ end`;
         }
 
         function switchTab(tabId) {
+            if (activeTabId === tabId) return;
+
+            // Save current editor content to current active tab memory
+            if (activeTabId && editor) {
+                const curTab = tabs.find(t => t.id === activeTabId);
+                if (curTab) {
+                    curTab.code = editor.getValue();
+                }
+            }
+
             activeTabId = tabId;
+            saveTabsToStorage();
             renderTabs();
-            loadTabContent(tabId);
+
+            const targetTab = tabs.find(t => t.id === tabId);
+            if (targetTab) {
+                setEditorContent(targetTab.code);
+            }
         }
 
-        // Add Tab Action
+        // Add New Tab
         document.getElementById('addTabBtn').addEventListener('click', () => {
-            const tabs = getTabsState();
-            const newId = 'tab_' + Date.now();
-            const newName = `Script ${tabs.length + 1}.luau`;
-            
-            tabs.push({ id: newId, name: newName, code: '-- New Luau Script\n' });
-            saveTabsState(tabs);
-            switchTab(newId);
+            const newTab = {
+                id: generateUniqueId(),
+                name: `Script ${tabs.length + 1}.luau`,
+                code: '-- New Luau Script\n'
+            };
+            tabs.push(newTab);
+            switchTab(newTab.id);
         });
 
-        // Tab Click & Close Handler
+        // Tab Click & Close Handler (Event Delegation)
         document.getElementById('tabsBar').addEventListener('click', (e) => {
             const tabEl = e.target.closest('.tab');
             if (!tabEl) return;
@@ -497,17 +516,21 @@ end`;
         });
 
         function closeTab(tabId) {
-            let tabs = getTabsState();
             if (tabs.length <= 1) return; // Keep at least one tab open
 
-            tabs = tabs.filter(t => t.id !== tabId);
-            saveTabsState(tabs);
+            const indexToRemove = tabs.findIndex(t => t.id === tabId);
+            if (indexToRemove === -1) return;
+
+            tabs.splice(indexToRemove, 1);
 
             if (activeTabId === tabId) {
-                activeTabId = tabs[tabs.length - 1].id;
+                const nextTab = tabs[Math.max(0, indexToRemove - 1)];
+                activeTabId = nextTab.id;
+                setEditorContent(nextTab.code);
             }
+
+            saveTabsToStorage();
             renderTabs();
-            loadTabContent(activeTabId);
         }
 
         // Custom Context Menu Logic
@@ -527,13 +550,12 @@ end`;
 
         document.getElementById('ctxRename').addEventListener('click', () => {
             if (!contextTargetTabId) return;
-            const tabs = getTabsState();
             const tab = tabs.find(t => t.id === contextTargetTabId);
             if (tab) {
-                const newName = prompt('Enter tab name:', tab.name);
-                if (newName) {
-                    tab.name = newName;
-                    saveTabsState(tabs);
+                const newName = prompt('Enter new tab name:', tab.name);
+                if (newName && newName.trim()) {
+                    tab.name = newName.trim();
+                    saveTabsToStorage();
                     renderTabs();
                 }
             }
@@ -547,7 +569,7 @@ end`;
             hideContextMenu();
         });
 
-        // Copy Script Button
+        // Copy Code Button
         document.getElementById('btnCopy').addEventListener('click', async () => {
             if (!editor) return;
             const code = editor.getValue();
@@ -558,9 +580,7 @@ end`;
                 const btn = document.getElementById('btnCopy');
                 const originalHtml = btn.innerHTML;
                 btn.innerHTML = `<i class="fa-solid fa-check"></i> Copied!`;
-                setTimeout(() => {
-                    btn.innerHTML = originalHtml;
-                }, 1500);
+                setTimeout(() => { btn.innerHTML = originalHtml; }, 1500);
             } catch (err) {
                 console.error('Failed to copy code:', err);
             }
@@ -569,19 +589,22 @@ end`;
         // Clear Current Tab
         document.getElementById('btnClear').addEventListener('click', () => {
             if (editor && activeTabId) {
-                editor.setValue('');
-                const tabs = getTabsState();
+                setEditorContent('');
                 const tab = tabs.find(t => t.id === activeTabId);
                 if (tab) {
                     tab.code = '';
-                    saveTabsState(tabs);
+                    saveTabsToStorage();
                 }
             }
         });
 
-        // --- Sidebar Script Management ---
+        // --- Sidebar Saved Scripts Explorer ---
         function getSavedScripts() {
-            return JSON.parse(localStorage.getItem('apex_luau_scripts') || '[]');
+            try {
+                return JSON.parse(localStorage.getItem('apex_luau_scripts') || '[]');
+            } catch (e) {
+                return [];
+            }
         }
 
         function saveScriptsToStorage(scripts) {
@@ -607,18 +630,17 @@ end`;
                     <i class="fa-solid fa-xmark delete-btn" data-index="${index}"></i>
                 `;
                 
-                // Clicking a saved script updates current tab
+                // Clicking saved script renames & updates current tab content
                 item.addEventListener('click', (e) => {
                     if (e.target.classList.contains('delete-btn')) return;
                     
-                    const tabs = getTabsState();
-                    const currentTab = tabs.find(t => t.id === activeTabId);
-                    if (currentTab) {
-                        currentTab.name = script.name;
-                        currentTab.code = script.code;
-                        saveTabsState(tabs);
+                    const activeTab = tabs.find(t => t.id === activeTabId);
+                    if (activeTab) {
+                        activeTab.name = script.name;
+                        activeTab.code = script.code;
+                        setEditorContent(script.code);
+                        saveTabsToStorage();
                         renderTabs();
-                        loadTabContent(activeTabId);
                     }
                 });
 
@@ -638,19 +660,18 @@ end`;
             const code = editor.getValue();
             if (!code.trim()) return;
 
-            const tabs = getTabsState();
-            const currentTab = tabs.find(t => t.id === activeTabId);
-            const defaultName = currentTab ? currentTab.name : `script_${Date.now().toString().slice(-4)}.luau`;
+            const activeTab = tabs.find(t => t.id === activeTabId);
+            const defaultName = activeTab ? activeTab.name : `script_${Date.now().toString().slice(-4)}.luau`;
 
             const scriptName = prompt('Save script as:', defaultName);
-            if (scriptName) {
+            if (scriptName && scriptName.trim()) {
                 const scripts = getSavedScripts();
-                scripts.push({ name: scriptName, code: code });
+                scripts.push({ name: scriptName.trim(), code: code });
                 saveScriptsToStorage(scripts);
 
-                if (currentTab) {
-                    currentTab.name = scriptName;
-                    saveTabsState(tabs);
+                if (activeTab) {
+                    activeTab.name = scriptName.trim();
+                    saveTabsToStorage();
                     renderTabs();
                 }
             }
