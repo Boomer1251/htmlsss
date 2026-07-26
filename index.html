@@ -102,6 +102,26 @@
         .auth-input:focus {
             border-color: var(--accent-color);
         }
+        
+        /* Remember Me Styling */
+        .remember-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 18px;
+            font-size: 13px;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-align: left;
+            user-select: none;
+        }
+        .remember-container input {
+            cursor: pointer;
+            accent-color: var(--accent-color);
+            width: 15px;
+            height: 15px;
+        }
+
         .auth-btn {
             width: 100%;
             padding: 12px;
@@ -386,6 +406,13 @@
                 <div class="auth-subtitle" id="authSubtitle">Access your isolated Luau workspace cloud profile</div>
                 <input type="text" class="auth-input" id="authUsername" placeholder="Username">
                 <input type="password" class="auth-input" id="authPassword" placeholder="Password">
+                
+                <!-- Added Remember Login Elements -->
+                <label class="remember-container">
+                    <input type="checkbox" id="authRememberMe">
+                    <span>Remember my profile</span>
+                </label>
+
                 <button class="auth-btn" id="authSubmitBtn">Login</button>
                 <div class="auth-toggle" id="authToggle">Don't have an account? <span>Register</span></div>
             </div>
@@ -459,9 +486,25 @@
             return JSON.parse(localStorage.getItem('workspace_accounts') || '{}');
         }
 
+        function checkPersistentSession() {
+            const savedSessionUser = localStorage.getItem('workspace_active_session');
+            if (savedSessionUser) {
+                const db = getAccounts();
+                if (db[savedSessionUser]) {
+                    currentUser = savedSessionUser;
+                    document.getElementById('displayUsername').innerText = currentUser;
+                    document.getElementById('authOverlay').style.display = 'none';
+                    return true;
+                }
+            }
+            return false;
+        }
+
         function handleAuth() {
             const user = document.getElementById('authUsername').value.trim();
             const pass = document.getElementById('authPassword').value.trim();
+            const rememberMe = document.getElementById('authRememberMe').checked;
+            
             if(!user || !pass) return alert("Fill in the fields profile boss.");
 
             const db = getAccounts();
@@ -476,12 +519,18 @@
             }
 
             currentUser = user;
+            
+            if (rememberMe) {
+                localStorage.setItem('workspace_active_session', currentUser);
+            } else {
+                localStorage.removeItem('workspace_active_session');
+            }
+
             document.getElementById('displayUsername').innerText = currentUser;
             document.getElementById('authOverlay').style.display = 'none';
             document.getElementById('authUsername').value = '';
             document.getElementById('authPassword').value = '';
 
-            // Setup working environment for user
             initializeWorkspace();
         }
 
@@ -495,10 +544,11 @@
 
         document.getElementById('logoutBtn').addEventListener('click', () => {
             saveUserDataToCloud();
-            // Dispose old editor visual tab models to clean out memory leak risks
+            localStorage.removeItem('workspace_active_session'); // Wipe auto-login token
             tabs.forEach(t => t.model && t.model.dispose());
             tabs = [];
             currentUser = null;
+            document.getElementById('authRememberMe').checked = false;
             document.getElementById('authOverlay').style.display = 'flex';
         });
 
@@ -525,7 +575,6 @@
                 loadedTabs = [{ id: 'tab_init', name: 'Script 1.luau', code: defaultCode }];
             }
 
-            // Map standard memory states over clean native Monaco ITextModels
             tabs = loadedTabs.map(t => ({
                 id: t.id,
                 name: t.name,
@@ -541,7 +590,6 @@
         // --- CORE MONACO INIT ---
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.38.0/min/vs' }});
         require(['vs/editor/editor.main'], function() {
-            // Setup dummy editor element container shell
             editor = monaco.editor.create(document.getElementById('monaco-editor-container'), {
                 theme: 'vs-dark',
                 automaticLayout: true,
@@ -550,6 +598,11 @@
                 minimap: { enabled: true },
                 padding: { top: 12, bottom: 12 }
             });
+
+            // Check if user has an existing saved login token right after Monaco wakes up
+            if (checkPersistentSession()) {
+                initializeWorkspace();
+            }
         });
 
         function renderTabs() {
@@ -580,7 +633,6 @@
             
             const targetTab = tabs.find(t => t.id === tabId);
             if (targetTab && editor) {
-                // Instantly replace text binding framework references natively without mutation bugs!
                 editor.setModel(targetTab.model);
             }
             saveUserDataToCloud();
@@ -614,7 +666,6 @@
             const idx = tabs.findIndex(t => t.id === tabId);
             if (idx === -1) return;
 
-            // Free system memory allocation cleanly
             tabs[idx].model.dispose();
             tabs.splice(idx, 1);
             
@@ -739,7 +790,6 @@
             if (editor) editor.setValue('');
         });
 
-        // Track window unloading to prevent user data drop cycles
         window.addEventListener('beforeunload', saveUserDataToCloud);
     </script>
 </body>
