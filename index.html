@@ -14,7 +14,7 @@
             --bg-secondary: #12131a;
             --bg-tertiary: #181a24;
             --accent-color: #6366f1;
-            --accent-glow: rgba(99, 102, 241, 0.35);
+            --accent-glow: rgba(99, 102, 241, 0.25);
             --text-main: #e2e8f0;
             --text-muted: #64748b;
             --border-color: #222431;
@@ -28,8 +28,6 @@
             margin: 0;
             padding: 0;
             font-family: 'JetBrains Mono', 'Fira Code', 'Inter', -apple-system, sans-serif;
-            user-select: none;
-            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' stroke='%23000000' stroke-width='1.5' stroke-linejoin='round' d='M3 3l7 18 3-7 7-3L3 3z'/%3E%3C/svg%3E"), auto !important;
         }
 
         body {
@@ -51,21 +49,88 @@
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 30px var(--accent-glow);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.6), 0 0 30px var(--accent-glow);
             display: flex;
             flex-direction: column;
             overflow: hidden;
             position: relative;
         }
 
+        /* --- Auth Overlay CSS --- */
+        .auth-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 12, 16, 0.95);
+            z-index: 20000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(8px);
+            transition: opacity 0.3s ease;
+        }
+        .auth-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 32px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .auth-title {
+            font-size: 20px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .auth-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+        .auth-input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-main);
+            margin-bottom: 16px;
+            outline: none;
+            font-size: 14px;
+        }
+        .auth-input:focus {
+            border-color: var(--accent-color);
+        }
+        .auth-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .auth-btn:hover { background: #4f46e5; }
+        .auth-toggle {
+            margin-top: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+        .auth-toggle span { color: var(--accent-color); text-decoration: underline; }
+
         .titlebar {
-            height: 42px;
+            height: 46px;
             background: #08090d;
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0 16px;
+            flex-shrink: 0;
         }
 
         .titlebar-left {
@@ -113,13 +178,14 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            padding: 5px 12px;
-            border-radius: 5px;
+            padding: 6px 14px;
+            border-radius: 6px;
             font-size: 12px;
             font-weight: 500;
             background: var(--bg-tertiary);
             color: var(--text-main);
             border: 1px solid var(--border-color);
+            cursor: pointer;
             transition: all 0.2s ease;
         }
 
@@ -142,10 +208,11 @@
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
+            flex-shrink: 0;
         }
 
         .sidebar-header {
-            padding: 12px 14px;
+            padding: 14px;
             font-size: 11px;
             font-weight: 700;
             color: var(--text-muted);
@@ -157,7 +224,10 @@
             border-bottom: 1px solid var(--border-color);
         }
 
-        .sidebar-header i { color: var(--accent-color); }
+        .sidebar-header i { 
+            color: var(--accent-color);
+            cursor: pointer;
+        }
 
         .script-list {
             flex: 1;
@@ -167,6 +237,8 @@
             flex-direction: column;
             gap: 4px;
         }
+        .script-list::-webkit-scrollbar { width: 4px; }
+        .script-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
 
         .script-item {
             display: flex;
@@ -178,6 +250,7 @@
             color: var(--text-muted);
             transition: all 0.2s;
             border: 1px solid transparent;
+            cursor: pointer;
         }
 
         .script-item:hover {
@@ -189,17 +262,31 @@
         .script-item .delete-btn {
             opacity: 0;
             transition: opacity 0.2s, color 0.2s;
+            cursor: pointer;
         }
 
         .script-item:hover .delete-btn { opacity: 1; }
         .script-item .delete-btn:hover { color: var(--mac-close); }
+
+        .user-panel {
+            padding: 12px;
+            border-top: 1px solid var(--border-color);
+            background: #07080b;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+        .user-info { display: flex; align-items: center; gap: 8px; color: var(--text-main); }
+        .logout-btn { color: var(--text-muted); cursor: pointer; transition: color 0.2s; }
+        .logout-btn:hover { color: var(--mac-close); }
 
         .editor-container {
             flex: 1;
             display: flex;
             flex-direction: column;
             background: var(--bg-secondary);
-            height: 100%;
+            overflow: hidden;
         }
 
         .tabs-bar {
@@ -212,6 +299,7 @@
             border-bottom: 1px solid var(--border-color);
             overflow-x: auto;
         }
+        .tabs-bar::-webkit-scrollbar { display: none; }
 
         .tab {
             display: flex;
@@ -225,6 +313,8 @@
             font-size: 12px;
             color: var(--text-muted);
             transition: all 0.2s;
+            cursor: pointer;
+            white-space: nowrap;
         }
 
         .tab.active {
@@ -238,17 +328,17 @@
             font-size: 10px;
             border-radius: 50%;
             padding: 2px;
+            cursor: pointer;
         }
-
         .tab .close-tab:hover { color: var(--mac-close); }
 
         .add-tab-btn {
             padding: 6px 10px;
             color: var(--text-muted);
             font-size: 12px;
+            cursor: pointer;
             transition: color 0.2s;
         }
-
         .add-tab-btn:hover { color: var(--text-main); }
 
         #monaco-editor-container {
@@ -279,23 +369,28 @@
             font-size: 12px;
             color: var(--text-main);
             border-radius: 4px;
+            cursor: pointer;
             transition: background 0.15s ease;
         }
-
-        .context-menu-item:hover {
-            background: var(--accent-color);
-            color: #ffffff;
-        }
-
-        .context-menu-item i {
-            font-size: 11px;
-            width: 14px;
-        }
+        .context-menu-item:hover { background: var(--accent-color); color: #ffffff; }
+        .context-menu-item i { font-size: 11px; width: 14px; }
     </style>
 </head>
 <body>
 
     <div class="window">
+        <!-- Auth Screen Overlay -->
+        <div class="auth-overlay" id="authOverlay">
+            <div class="auth-card">
+                <div class="auth-title" id="authTitle">Sign In</div>
+                <div class="auth-subtitle" id="authSubtitle">Access your isolated Luau workspace cloud profile</div>
+                <input type="text" class="auth-input" id="authUsername" placeholder="Username">
+                <input type="password" class="auth-input" id="authPassword" placeholder="Password">
+                <button class="auth-btn" id="authSubmitBtn">Login</button>
+                <div class="auth-toggle" id="authToggle">Don't have an account? <span>Register</span></div>
+            </div>
+        </div>
+
         <div class="titlebar">
             <div class="titlebar-left">
                 <div class="mac-controls">
@@ -310,197 +405,197 @@
             </div>
             
             <div class="titlebar-actions">
-                <button class="btn-sm" id="btnCopy">
-                    <i class="fa-solid fa-copy"></i> Copy
-                </button>
-                <button class="btn-sm" id="btnSave">
-                    <i class="fa-solid fa-floppy-disk"></i> Save Script
-                </button>
-                <button class="btn-sm" id="btnClear">
-                    <i class="fa-solid fa-eraser"></i> Clear
-                </button>
+                <button class="btn-sm" id="btnCopy"><i class="fa-solid fa-copy"></i> Copy</button>
+                <button class="btn-sm" id="btnSave"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+                <button class="btn-sm" id="btnClear"><i class="fa-solid fa-eraser"></i> Clear</button>
             </div>
         </div>
 
         <div class="workspace">
             <div class="sidebar">
                 <div class="sidebar-header">
-                    <span>Explorer / Hub</span>
-                    <i class="fa-solid fa-folder-open"></i>
+                    <span>Saved Explorer</span>
+                    <i class="fa-solid fa-square-plus" id="sidebarAddBtn" title="New file"></i>
                 </div>
                 <div class="script-list" id="scriptList"></div>
+                
+                <div class="user-panel">
+                    <div class="user-info">
+                        <i class="fa-solid fa-user-astronaut" style="color:var(--accent-color)"></i>
+                        <span id="displayUsername">Guest</span>
+                    </div>
+                    <i class="fa-solid fa-right-from-bracket logout-btn" id="logoutBtn" title="Logout"></i>
+                </div>
             </div>
 
             <div class="editor-container">
                 <div class="tabs-bar" id="tabsBar">
-                    <div class="add-tab-btn" id="addTabBtn">
-                        <i class="fa-solid fa-plus"></i>
-                    </div>
+                    <div class="add-tab-btn" id="addTabBtn"><i class="fa-solid fa-plus"></i></div>
                 </div>
                 <div id="monaco-editor-container"></div>
             </div>
         </div>
     </div>
 
-    <!-- Custom Right-Click Context Menu -->
     <div class="context-menu" id="customContextMenu">
-        <div class="context-menu-item" id="ctxRename">
-            <i class="fa-solid fa-pen"></i> Rename
-        </div>
-        <div class="context-menu-item" id="ctxClose">
-            <i class="fa-solid fa-xmark"></i> Close Tab
-        </div>
+        <div class="context-menu-item" id="ctxRename"><i class="fa-solid fa-pen"></i> Rename</div>
+        <div class="context-menu-item" id="ctxClose"><i class="fa-solid fa-xmark"></i> Close Tab</div>
     </div>
 
     <script>
-        // Completely disable default browser context menu globally
-        document.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-        });
+        document.addEventListener('contextmenu', e => e.preventDefault());
 
-        const defaultCode = `-- Luau Workspace
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-
-local LocalPlayer = Players.LocalPlayer
-
-local function upgradeSlot(slotName)
-    local args = {
-        workspace.Plots.PlayerPlots[tostring(LocalPlayer.UserId)].Floor1.Slots[slotName].Upgrade.Part.UpgradeGUI,
-        "NormalUpgrade"
-    }
-    ReplicatedStorage.Events.UpgradeItemEvent:FireServer(unpack(args))
-end`;
+        const defaultCode = `-- Luau Cloud Environment\nlocal Players = game:GetService("Players")\nprint("Welcome back, ", Players.LocalPlayer)`;
 
         let editor = null;
         let activeTabId = null;
         let contextTargetTabId = null;
-        let isUpdatingEditor = false; // Prevents race conditions during editor.setValue()
+        let tabs = []; 
+        let currentUser = null;
+        let isSignUpMode = false;
 
-        // --- In-Memory Tab System ---
-        let tabs = [];
+        // --- AUTH SYSTEM LOGIC ---
+        function getAccounts() {
+            return JSON.parse(localStorage.getItem('workspace_accounts') || '{}');
+        }
 
-        function loadTabsFromStorage() {
-            try {
-                const saved = localStorage.getItem('apex_tabs_state');
-                if (saved) {
-                    tabs = JSON.parse(saved);
-                }
-            } catch (e) {
-                console.error("Failed to load tabs state", e);
+        function handleAuth() {
+            const user = document.getElementById('authUsername').value.trim();
+            const pass = document.getElementById('authPassword').value.trim();
+            if(!user || !pass) return alert("Fill in the fields profile boss.");
+
+            const db = getAccounts();
+
+            if (isSignUpMode) {
+                if (db[user]) return alert("Username taken highkey.");
+                db[user] = { password: pass, scripts: [], tabsState: [] };
+                localStorage.setItem('workspace_accounts', JSON.stringify(db));
+                alert("Account secured! Logging in...");
+            } else {
+                if (!db[user] || db[user].password !== pass) return alert("Wrong credentials bestie 💀");
             }
-            if (!tabs || tabs.length === 0) {
-                tabs = [{ id: 'tab_' + Date.now(), name: 'Script 1.luau', code: defaultCode }];
+
+            currentUser = user;
+            document.getElementById('displayUsername').innerText = currentUser;
+            document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('authUsername').value = '';
+            document.getElementById('authPassword').value = '';
+
+            // Setup working environment for user
+            initializeWorkspace();
+        }
+
+        document.getElementById('authSubmitBtn').addEventListener('click', handleAuth);
+        document.getElementById('authToggle').addEventListener('click', () => {
+            isSignUpMode = !isSignUpMode;
+            document.getElementById('authTitle').innerText = isSignUpMode ? "Create Account" : "Sign In";
+            document.getElementById('authSubmitBtn').innerText = isSignUpMode ? "Register" : "Login";
+            document.getElementById('authToggle').innerHTML = isSignUpMode ? "Got an account? <span>Sign In</span>" : "Don't have an account? <span>Register</span>";
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            saveUserDataToCloud();
+            // Dispose old editor visual tab models to clean out memory leak risks
+            tabs.forEach(t => t.model && t.model.dispose());
+            tabs = [];
+            currentUser = null;
+            document.getElementById('authOverlay').style.display = 'flex';
+        });
+
+        // --- ACCOUNT DATABASE SAVE/LOAD SYNCING ---
+        function saveUserDataToCloud() {
+            if (!currentUser) return;
+            const db = getAccounts();
+            if (!db[currentUser]) return;
+
+            db[currentUser].tabsState = tabs.map(t => ({
+                id: t.id,
+                name: t.name,
+                code: t.model ? t.model.getValue() : t.code
+            }));
+            localStorage.setItem('workspace_accounts', JSON.stringify(db));
+        }
+
+        function initializeWorkspace() {
+            const db = getAccounts();
+            const userData = db[currentUser];
+            
+            let loadedTabs = userData.tabsState || [];
+            if (loadedTabs.length === 0) {
+                loadedTabs = [{ id: 'tab_init', name: 'Script 1.luau', code: defaultCode }];
             }
+
+            // Map standard memory states over clean native Monaco ITextModels
+            tabs = loadedTabs.map(t => ({
+                id: t.id,
+                name: t.name,
+                model: monaco.editor.createModel(t.code, 'lua')
+            }));
+
+            activeTabId = tabs[0].id;
+            renderTabs();
+            editor.setModel(tabs[0].model);
+            renderScriptList();
         }
 
-        function saveTabsToStorage() {
-            localStorage.setItem('apex_tabs_state', JSON.stringify(tabs));
-        }
-
-        function generateUniqueId() {
-            return 'tab_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-        }
-
-        // Initialize Monaco Editor
+        // --- CORE MONACO INIT ---
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.38.0/min/vs' }});
         require(['vs/editor/editor.main'], function() {
+            // Setup dummy editor element container shell
             editor = monaco.editor.create(document.getElementById('monaco-editor-container'), {
-                value: '',
-                language: 'lua',
                 theme: 'vs-dark',
                 automaticLayout: true,
                 fontSize: 14,
-                fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                 minimap: { enabled: true },
-                roundedSelection: true,
-                scrollBeyondLastLine: false,
                 padding: { top: 12, bottom: 12 }
             });
-
-            loadTabsFromStorage();
-            activeTabId = tabs[0].id;
-            renderTabs();
-            setEditorContent(tabs[0].code);
-
-            // Track changes cleanly without triggering re-entrant event loops
-            editor.onDidChangeModelContent(() => {
-                if (isUpdatingEditor || !activeTabId) return;
-                const activeTab = tabs.find(t => t.id === activeTabId);
-                if (activeTab) {
-                    activeTab.code = editor.getValue();
-                    saveTabsToStorage();
-                }
-            });
         });
-
-        function setEditorContent(code) {
-            if (!editor) return;
-            isUpdatingEditor = true;
-            editor.setValue(code || '');
-            isUpdatingEditor = false;
-        }
 
         function renderTabs() {
             const tabsBar = document.getElementById('tabsBar');
             const addBtn = document.getElementById('addTabBtn');
-
             document.querySelectorAll('.tab').forEach(t => t.remove());
 
             tabs.forEach(tab => {
                 const tabEl = document.createElement('div');
                 tabEl.className = `tab ${tab.id === activeTabId ? 'active' : ''}`;
                 tabEl.dataset.id = tab.id;
-                tabEl.innerHTML = `
-                    <span>${tab.name}</span>
-                    <i class="fa-solid fa-xmark close-tab"></i>
-                `;
+                tabEl.innerHTML = `<span>${tab.name}</span><i class="fa-solid fa-xmark close-tab"></i>`;
 
-                // Custom Context Menu on Right Click
                 tabEl.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     contextTargetTabId = tab.id;
                     showContextMenu(e.clientX, e.clientY);
                 });
-
                 tabsBar.insertBefore(tabEl, addBtn);
             });
         }
 
         function switchTab(tabId) {
             if (activeTabId === tabId) return;
-
-            // Save current editor content to current active tab memory
-            if (activeTabId && editor) {
-                const curTab = tabs.find(t => t.id === activeTabId);
-                if (curTab) {
-                    curTab.code = editor.getValue();
-                }
-            }
-
             activeTabId = tabId;
-            saveTabsToStorage();
             renderTabs();
-
+            
             const targetTab = tabs.find(t => t.id === tabId);
-            if (targetTab) {
-                setEditorContent(targetTab.code);
+            if (targetTab && editor) {
+                // Instantly replace text binding framework references natively without mutation bugs!
+                editor.setModel(targetTab.model);
             }
+            saveUserDataToCloud();
         }
 
-        // Add New Tab
-        document.getElementById('addTabBtn').addEventListener('click', () => {
-            const newTab = {
-                id: generateUniqueId(),
-                name: `Script ${tabs.length + 1}.luau`,
-                code: '-- New Luau Script\n'
-            };
+        function createNewTab(name = `Script ${tabs.length + 1}.luau`, code = '-- New Luau Script\n') {
+            const newModel = monaco.editor.createModel(code, 'lua');
+            const newTab = { id: `tab_${Date.now()}_${Math.random().toString(36).substr(2,5)}`, name, model: newModel };
             tabs.push(newTab);
             switchTab(newTab.id);
-        });
+        }
 
-        // Tab Click & Close Handler (Event Delegation)
+        document.getElementById('addTabBtn').addEventListener('click', () => createNewTab());
+        document.getElementById('sidebarAddBtn').addEventListener('click', () => createNewTab());
+
         document.getElementById('tabsBar').addEventListener('click', (e) => {
             const tabEl = e.target.closest('.tab');
             if (!tabEl) return;
@@ -511,114 +606,38 @@ end`;
                 closeTab(tabId);
                 return;
             }
-
             switchTab(tabId);
         });
 
         function closeTab(tabId) {
-            if (tabs.length <= 1) return; // Keep at least one tab open
+            if (tabs.length <= 1) return;
+            const idx = tabs.findIndex(t => t.id === tabId);
+            if (idx === -1) return;
 
-            const indexToRemove = tabs.findIndex(t => t.id === tabId);
-            if (indexToRemove === -1) return;
-
-            tabs.splice(indexToRemove, 1);
-
+            // Free system memory allocation cleanly
+            tabs[idx].model.dispose();
+            tabs.splice(idx, 1);
+            
             if (activeTabId === tabId) {
-                const nextTab = tabs[Math.max(0, indexToRemove - 1)];
+                const nextTab = tabs[Math.max(0, idx - 1)];
                 activeTabId = nextTab.id;
-                setEditorContent(nextTab.code);
+                editor.setModel(nextTab.model);
             }
-
-            saveTabsToStorage();
+            saveUserDataToCloud();
             renderTabs();
         }
 
-        // Custom Context Menu Logic
-        const menu = document.getElementById('customContextMenu');
-
-        function showContextMenu(x, y) {
-            menu.style.left = `${x}px`;
-            menu.style.top = `${y}px`;
-            menu.style.display = 'flex';
-        }
-
-        function hideContextMenu() {
-            menu.style.display = 'none';
-        }
-
-        document.addEventListener('click', hideContextMenu);
-
-        document.getElementById('ctxRename').addEventListener('click', () => {
-            if (!contextTargetTabId) return;
-            const tab = tabs.find(t => t.id === contextTargetTabId);
-            if (tab) {
-                const newName = prompt('Enter new tab name:', tab.name);
-                if (newName && newName.trim()) {
-                    tab.name = newName.trim();
-                    saveTabsToStorage();
-                    renderTabs();
-                }
-            }
-            hideContextMenu();
-        });
-
-        document.getElementById('ctxClose').addEventListener('click', () => {
-            if (contextTargetTabId) {
-                closeTab(contextTargetTabId);
-            }
-            hideContextMenu();
-        });
-
-        // Copy Code Button
-        document.getElementById('btnCopy').addEventListener('click', async () => {
-            if (!editor) return;
-            const code = editor.getValue();
-            if (!code.trim()) return;
-
-            try {
-                await navigator.clipboard.writeText(code);
-                const btn = document.getElementById('btnCopy');
-                const originalHtml = btn.innerHTML;
-                btn.innerHTML = `<i class="fa-solid fa-check"></i> Copied!`;
-                setTimeout(() => { btn.innerHTML = originalHtml; }, 1500);
-            } catch (err) {
-                console.error('Failed to copy code:', err);
-            }
-        });
-
-        // Clear Current Tab
-        document.getElementById('btnClear').addEventListener('click', () => {
-            if (editor && activeTabId) {
-                setEditorContent('');
-                const tab = tabs.find(t => t.id === activeTabId);
-                if (tab) {
-                    tab.code = '';
-                    saveTabsToStorage();
-                }
-            }
-        });
-
-        // --- Sidebar Saved Scripts Explorer ---
-        function getSavedScripts() {
-            try {
-                return JSON.parse(localStorage.getItem('apex_luau_scripts') || '[]');
-            } catch (e) {
-                return [];
-            }
-        }
-
-        function saveScriptsToStorage(scripts) {
-            localStorage.setItem('apex_luau_scripts', JSON.stringify(scripts));
-            renderScriptList();
-        }
-
+        // --- SAVED FILES EXPLORER LOGIC ---
         function renderScriptList() {
-            const scriptList = document.getElementById('scriptList');
-            scriptList.innerHTML = '';
-            const scripts = getSavedScripts();
+            const list = document.getElementById('scriptList');
+            list.innerHTML = '';
+            if (!currentUser) return;
+
+            const db = getAccounts();
+            const scripts = db[currentUser].scripts || [];
 
             if (scripts.length === 0) {
-                scriptList.innerHTML = `<div style="font-size:11px; color: var(--text-muted); padding: 8px;">No saved files.</div>`;
+                list.innerHTML = `<div style="font-size:11px; color: var(--text-muted); padding: 8px;">Workspace is empty.</div>`;
                 return;
             }
 
@@ -627,57 +646,101 @@ end`;
                 item.className = 'script-item';
                 item.innerHTML = `
                     <span><i class="fa-regular fa-file-code" style="margin-right:6px; color: var(--accent-color);"></i>${script.name}</span>
-                    <i class="fa-solid fa-xmark delete-btn" data-index="${index}"></i>
+                    <i class="fa-solid fa-xmark delete-btn"></i>
                 `;
                 
-                // Clicking saved script renames & updates current tab content
                 item.addEventListener('click', (e) => {
                     if (e.target.classList.contains('delete-btn')) return;
-                    
-                    const activeTab = tabs.find(t => t.id === activeTabId);
-                    if (activeTab) {
-                        activeTab.name = script.name;
-                        activeTab.code = script.code;
-                        setEditorContent(script.code);
-                        saveTabsToStorage();
-                        renderTabs();
+                    const existingTab = tabs.find(t => t.name === script.name);
+                    if (existingTab) {
+                        switchTab(existingTab.id);
+                    } else {
+                        createNewTab(script.name, script.code);
                     }
                 });
 
                 item.querySelector('.delete-btn').addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const currentScripts = getSavedScripts();
-                    currentScripts.splice(index, 1);
-                    saveScriptsToStorage(currentScripts);
+                    const currentDb = getAccounts();
+                    currentDb[currentUser].scripts.splice(index, 1);
+                    localStorage.setItem('workspace_accounts', JSON.stringify(currentDb));
+                    renderScriptList();
                 });
 
-                scriptList.appendChild(item);
+                list.appendChild(item);
             });
         }
 
         document.getElementById('btnSave').addEventListener('click', () => {
-            if (!editor) return;
-            const code = editor.getValue();
-            if (!code.trim()) return;
-
+            if (!editor || !currentUser) return;
             const activeTab = tabs.find(t => t.id === activeTabId);
-            const defaultName = activeTab ? activeTab.name : `script_${Date.now().toString().slice(-4)}.luau`;
+            const defaultName = activeTab ? activeTab.name : 'script.luau';
 
-            const scriptName = prompt('Save script as:', defaultName);
-            if (scriptName && scriptName.trim()) {
-                const scripts = getSavedScripts();
-                scripts.push({ name: scriptName.trim(), code: code });
-                saveScriptsToStorage(scripts);
-
+            const name = prompt('Save script to account as:', defaultName);
+            if (name?.trim()) {
+                const cleanName = name.trim();
+                const currentDb = getAccounts();
+                const codeContent = editor.getValue();
+                
+                let userScripts = currentDb[currentUser].scripts || [];
+                const existIdx = userScripts.findIndex(s => s.name === cleanName);
+                
+                if (existIdx > -1) userScripts[existIdx].code = codeContent;
+                else userScripts.push({ name: cleanName, code: codeContent });
+                
+                currentDb[currentUser].scripts = userScripts;
+                localStorage.setItem('workspace_accounts', JSON.stringify(currentDb));
+                
                 if (activeTab) {
-                    activeTab.name = scriptName.trim();
-                    saveTabsToStorage();
+                    activeTab.name = cleanName;
                     renderTabs();
+                }
+                renderScriptList();
+                saveUserDataToCloud();
+            }
+        });
+
+        // --- GLOBAL INTERFACE UTILITIES ---
+        const menu = document.getElementById('customContextMenu');
+        function showContextMenu(x, y) {
+            menu.style.left = `${x}px`; menu.style.top = `${y}px`; menu.style.display = 'flex';
+        }
+        function hideContextMenu() { menu.style.display = 'none'; }
+        document.addEventListener('click', hideContextMenu);
+
+        document.getElementById('ctxRename').addEventListener('click', () => {
+            if (!contextTargetTabId) return;
+            const tab = tabs.find(t => t.id === contextTargetTabId);
+            if (tab) {
+                const newName = prompt('Enter new tab name:', tab.name);
+                if (newName?.trim()) {
+                    tab.name = newName.trim();
+                    renderTabs();
+                    saveUserDataToCloud();
                 }
             }
         });
 
-        renderScriptList();
+        document.getElementById('ctxClose').addEventListener('click', () => {
+            if (contextTargetTabId) closeTab(contextTargetTabId);
+        });
+
+        document.getElementById('btnCopy').addEventListener('click', async () => {
+            if (!editor) return;
+            try {
+                await navigator.clipboard.writeText(editor.getValue());
+                const btn = document.getElementById('btnCopy');
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> Copied!`;
+                setTimeout(() => { btn.innerHTML = `<i class="fa-solid fa-copy"></i> Copy`; }, 1200);
+            } catch (err) { console.error(err); }
+        });
+
+        document.getElementById('btnClear').addEventListener('click', () => {
+            if (editor) editor.setValue('');
+        });
+
+        // Track window unloading to prevent user data drop cycles
+        window.addEventListener('beforeunload', saveUserDataToCloud);
     </script>
 </body>
 </html>
